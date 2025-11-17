@@ -75,4 +75,41 @@ class ProviderController extends Controller
             ], 500);
         }
     }
+
+    public function search(Request $request)
+{
+    $request->validate([
+        'district_id' => 'required|integer',
+        'town_id' => 'required|integer',
+        'requirement' => 'required|string'
+    ]);
+
+    $districtId = $request->district_id;
+    $townId = $request->town_id;
+    $keyword = strtolower($request->requirement);
+
+    $providers = ServiceProvider::with('towns')
+        ->where('district_id', $districtId)
+        ->whereHas('towns', function ($q) use ($townId) {
+            $q->where('town_id', $townId);
+        })
+        ->get()
+        ->filter(function ($provider) use ($keyword) {
+            $industries = $provider->industries ?? [];
+            // $industries should be array (cast in model). If it's string, decode:
+            if (is_string($industries)) {
+                $industries = json_decode($industries, true) ?: [];
+            }
+            foreach ($industries as $ind) {
+                if (stripos($ind, $keyword) === 0) { // starts with keyword
+                    return true;
+                }
+            }
+            return false;
+        })->values();
+
+    return response()->json($providers);
+}
+
+
 }
