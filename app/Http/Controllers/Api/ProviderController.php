@@ -81,17 +81,17 @@ class ProviderController extends Controller
     public function search(Request $request)
 {
     $request->validate([
-        'district_id' => 'required|integer',
+        // 'district_id' => 'required|integer',
         'town_id' => 'required|integer',
         'requirement' => 'required|string'
     ]);
 
-    $districtId = $request->district_id;
+    // $districtId = $request->district_id;
     $townId = $request->town_id;
     $keyword = strtolower($request->requirement);
 
     $providers = ServiceProvider::with('towns')
-        ->where('district_id', $districtId)
+        // ->where('district_id', $districtId)
         ->whereHas('towns', function ($q) use ($townId) {
             $q->where('town_id', $townId);
         })
