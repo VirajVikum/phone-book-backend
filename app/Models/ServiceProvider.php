@@ -10,7 +10,7 @@ class ServiceProvider extends Model
     use HasFactory;
     protected $fillable = [
         'name', 'gender', 'mobile_no', 'whatsapp_no', 'address',
-        'district_id', 'industries', 'photo_url'
+        'district_id', 'industries', 'photo_url', 'email'
     ];
 
     protected $casts = [

@@ -19,6 +19,7 @@ class ProviderController extends Controller
                 'address' => 'required|string',
                 'district_id' => 'required|integer',
                 'towns' => 'required|array',
+                'email' => 'required|email'
             ]);
 
             // Handle photo upload
@@ -55,6 +56,7 @@ class ProviderController extends Controller
                 'district_id' => $request->district_id,
                 'industries' => json_encode($request->industries),
                 'photo_url' => $photoPath ? "/storage/$photoPath" : null,
+                'email' => $request->email,
             ]);
 
             if ($request->has('towns')) {
