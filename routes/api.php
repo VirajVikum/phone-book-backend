@@ -11,3 +11,9 @@ Route::get('/search_providers', [ProviderController::class, 'search']);
 
 Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp']);
 Route::post('/verify-email-otp', [AuthController::class, 'verifyEmailOtp']);
+
+Route::post('/send-telegram-otp', [AuthController::class, 'sendTelegramOtp']);
+Route::post('/verify-telegram-otp', [AuthController::class, 'verifyTelegramOtp']);
+
+Route::post('/send-whatsapp-otp-own', [AuthController::class, 'sendOwnWhatsAppOtp']);
+Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']);
