@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
 
-class ServiceProvider extends Model
+class ServiceProvider extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, HasApiTokens, Notifiable;
+
+
     protected $fillable = [
         'name', 'gender', 'mobile_no', 'whatsapp_no', 'address',
         'district_id', 'industries', 'photo_url', 'email'
@@ -17,11 +21,20 @@ class ServiceProvider extends Model
         'industries' => 'array'
     ];
 
-    public function district() {
+    // THESE ARE SAFE EVEN IF COLUMNS DON'T EXIST
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    // Relationships
+    public function district()
+    {
         return $this->belongsTo(District::class);
     }
 
-    public function towns() {
+    public function towns()
+    {
         return $this->belongsToMany(Town::class, 'provider_towns', 'provider_id', 'town_id');
     }
 }

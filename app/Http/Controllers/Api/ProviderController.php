@@ -63,9 +63,12 @@ class ProviderController extends Controller
                 $provider->towns()->sync($request->towns);
             }
 
+            $token = $provider->createToken('auth_token')->plainTextToken;
+
             return response()->json([
                 'success' => true,
-                'provider_id' => $provider->id,
+                'token' => $token,
+                'provider' => $provider,
                 'message' => 'Provider registered successfully'
             ], 201);
 
