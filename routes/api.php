@@ -8,6 +8,7 @@ Route::get('/districts', [DistrictController::class, 'index']);
 Route::get('/districts/{id}/towns', [DistrictController::class, 'towns']);
 Route::post('/register_provider', [ProviderController::class, 'register']);
 Route::get('/search_providers', [ProviderController::class, 'search']);
+Route::put('/update_provider', [ProviderController::class, 'update']);
 
 Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp']);
 Route::post('/verify-email-otp', [AuthController::class, 'verifyEmailOtp']);

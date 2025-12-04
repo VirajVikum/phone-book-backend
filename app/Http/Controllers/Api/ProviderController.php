@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ServiceProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class ProviderController extends Controller
 {
@@ -117,5 +119,81 @@ class ProviderController extends Controller
     return response()->json($providers);
 }
 
+public function update(Request $request)
+{
+    try {
+        // THIS IS THE CORRECT WAY TO GET AUTHENTICATED USER WITH SANCTUM
+        $provider = auth('sanctum')->user();
+
+        if (!$provider) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        // Validation (same as register)
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'gender'      => 'required|in:M,F',
+            'address'     => 'required|string',
+            'district_id' => 'required|integer|exists:districts,id',
+            'towns'       => 'required|array|min:1',
+            'towns.*'     => 'integer|exists:towns,id',
+            'industries'  => 'required|array|min:1',
+            'industries.*'=> 'string|max:100',
+            'photo'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        // Handle photo upload — EXACTLY SAME LOGIC AS REGISTER
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($provider->photo_url) {
+                $oldPath = str_replace('/storage/', '', $provider->photo_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $ext = $request->file('photo')->getClientOriginalExtension();
+            $idPart = $request->whatsapp_no ?? $provider->mobile_no;
+            $timestamp = now()->format('Ymd_His');
+            $uniqueName = "{$idPart}_{$timestamp}.{$ext}";
+
+            $photoPath = $request->file('photo')->storeAs(
+                'provider_photos',
+                $uniqueName,
+                'public'
+            );
+
+            $provider->photo_url = "/storage/{$photoPath}";
+        }
+
+        // Update all fields — EXACTLY LIKE REGISTER
+        $provider->update([
+            'name'        => $request->name,
+            'gender'      => $request->gender,
+            'whatsapp_no' => $request->whatsapp_no ?? $provider->whatsapp_no,
+            'address'     => $request->address,
+            'district_id' => $request->district_id,
+            'industries'  => $request->industries, // auto json_encode because of $casts
+        ]);
+
+        // Sync towns
+        $provider->towns()->sync($request->towns);
+        $provider->load('towns');
+
+        return response()->json([
+            'success'  => true,
+            'message'  => 'Profile updated successfully',
+            'provider' => $provider
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
 
 }
