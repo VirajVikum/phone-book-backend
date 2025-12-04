@@ -62,6 +62,7 @@ class ProviderController extends Controller
             if ($request->has('towns')) {
                 $provider->towns()->sync($request->towns);
             }
+            $provider->load('towns');
 
             $token = $provider->createToken('auth_token')->plainTextToken;
 
