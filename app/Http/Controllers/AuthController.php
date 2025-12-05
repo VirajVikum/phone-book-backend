@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
@@ -202,6 +203,39 @@ public function verifyWhatsAppOtp(Request $request)
     //                                     ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 }
 
+
+public function loginWithWhatsApp(Request $request)
+{
+    $request->validate([
+        'mobile' => 'required|string|size:10', // 0771234567 format
+    ]);
+
+    $mobile = $request->mobile;
+
+    // Find provider by mobile_no OR whatsapp_no
+    $provider = ServiceProvider::where('whatsapp_no', $mobile)
+                ->first();
+
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No account found with this number'
+        ], 404);
+    }
+
+    // Generate token — SAME AS REGISTRATION
+    $token = $provider->createToken('auth_token')->plainTextToken;
+
+    // Load relationships
+    $provider->load('towns');
+
+    return response()->json([
+        'success'  => true,
+        'message'  => 'Login successful',
+        'token'    => $token,
+        'provider' => $provider
+    ], 200);
+}
 
 
 }

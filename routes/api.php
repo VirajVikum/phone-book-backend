@@ -18,3 +18,5 @@ Route::post('/verify-telegram-otp', [AuthController::class, 'verifyTelegramOtp']
 
 Route::post('/send-whatsapp-otp-own', [AuthController::class, 'sendOwnWhatsAppOtp']);
 Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']);
+
+Route::post('/login-whatsapp', [AuthController::class, 'loginWithWhatsApp']);
