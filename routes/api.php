@@ -20,3 +20,5 @@ Route::post('/send-whatsapp-otp-own', [AuthController::class, 'sendOwnWhatsAppOt
 Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']);
 
 Route::post('/login-whatsapp', [AuthController::class, 'loginWithWhatsApp']);
+
+Route::delete('/provider/delete', [ProviderController::class, 'deleteAccount']);

@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->json('industries')->nullable(); // Stores services like Plumber, Electrician
             $table->string('photo_url')->nullable();
             $table->string('email');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

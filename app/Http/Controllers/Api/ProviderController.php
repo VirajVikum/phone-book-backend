@@ -196,4 +196,41 @@ public function update(Request $request)
     }
 }
 
+public function deleteAccount(Request $request)
+{
+    // THIS IS THE FIX — GET USER FROM SANCTUM
+    $provider = $request->user();
+
+    // If still null (very rare), fallback to Auth
+    if (!$provider) {
+        $provider = Auth::guard('sanctum')->user();
+    }
+
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    // Optional: Delete photo
+    // if ($provider->photo_url) {
+    //     $path = str_replace('/storage', 'public', $provider->photo_url);
+    //     if (Storage::exists($path)) {
+    //         Storage::delete($path);
+    //     }
+    // }
+
+    // Revoke all tokens first
+    // $provider->tokens()->delete();
+
+    // SOFT DELETE
+    $provider->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Your account has been deleted successfully.'
+    ]);
+}
+
 }

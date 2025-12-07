@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
@@ -9,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 
 class ServiceProvider extends Authenticatable
 {
-    use HasFactory, HasApiTokens, Notifiable;
+    use HasFactory, HasApiTokens, Notifiable, SoftDeletes;
 
 
     protected $fillable = [
@@ -27,6 +28,12 @@ class ServiceProvider extends Authenticatable
         'remember_token',
     ];
 
+    protected static function booted()
+{
+    static::addGlobalScope('active', function ($builder) {
+        $builder->whereNull('deleted_at');
+    });
+}
     // Relationships
     public function district()
     {
