@@ -163,7 +163,7 @@ public function sendOwnWhatsAppOtp(Request $request)
     $mobile94 = '94' . ltrim($mobile10, '0');
 
     // Let Node.js generate and send the OTP
-    $response = Http::timeout(20)->post('https://phone-book-backend-production.up.railway.app:3000/send-otp', [
+    $response = Http::timeout(20)->post('https://pb-otp-system-production.up.railway.app:3000/send-otp', [
         'number' => $mobile94,
         'otp'    => '' // Let Node.js generate it
     ]);
