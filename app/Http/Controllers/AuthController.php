@@ -155,15 +155,35 @@ public function verifyTelegramOtp(Request $request)
 public function sendOwnWhatsAppOtp(Request $request)
 {
     $mobile10 = $request->mobile;
+    $type = $request->type;
 
     if (!preg_match('/^0[7-9][0-9]{8}$/', $mobile10)) {
         return response()->json(['success' => false, 'message' => 'Invalid mobile'], 400);
     }
 
+    // Check if provider exists
+    $provider = ServiceProvider::where('whatsapp_no', $mobile10)
+                                ->first();
+
+    if ($type === 'login' && !$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No account found for this number. Please register first.'
+        ], 404);
+    }
+
+    if ($type === 'register' && $provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Mobile number already registered. Please login.'
+        ], 400);
+    }
+
     $mobile94 = '94' . ltrim($mobile10, '0');
 
     // Let Node.js generate and send the OTP
-    $response = Http::timeout(20)->post('https://pb-otp-system-production.up.railway.app/send-otp', [
+    // $response = Http::timeout(20)->post('https://pb-otp-system-production.up.railway.app/send-otp', [
+    $response = Http::timeout(20)->post('http://127.0.0.1:3000/send-otp', [
         'number' => $mobile94,
         'otp'    => '' // Let Node.js generate it
     ]);
