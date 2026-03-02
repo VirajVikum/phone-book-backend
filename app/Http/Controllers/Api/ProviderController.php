@@ -19,9 +19,12 @@ class ProviderController extends Controller
                 'gender' => 'required|string',
                 'mobile_no' => 'required',
                 'address' => 'required|string',
-                'district_id' => 'required|integer',
-                'towns' => 'required|array',
-                'email' => 'required|email'
+                'district_id' => 'nullable|integer',
+                'towns' => 'nullable|array',
+                'email' => 'nullable|email',
+                'service_area' => 'nullable|string',
+                'latitude' => 'nullable|numeric',
+                'longitude' => 'nullable|numeric'
             ]);
 
             // Handle photo upload
@@ -59,6 +62,9 @@ class ProviderController extends Controller
                 'industries' => json_encode($request->industries),
                 'photo_url' => $photoPath ? "/storage/$photoPath" : null,
                 'email' => $request->email,
+                'service_area' => $request->service_area,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
             ]);
 
             if ($request->has('towns')) {
@@ -85,39 +91,50 @@ class ProviderController extends Controller
     }
 
     public function search(Request $request)
-{
-    $request->validate([
-        // 'district_id' => 'required|integer',
-        'town_id' => 'required|integer',
-        'requirement' => 'required|string'
-    ]);
+    {
+        $request->validate([
+            'requirement' => 'required|string',
+            'town_id' => 'nullable|integer',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
+            'radius' => 'nullable|numeric'
+        ]);
 
-    // $districtId = $request->district_id;
-    $townId = $request->town_id;
-    $keyword = strtolower($request->requirement);
+        $keyword = strtolower($request->requirement);
+        $lat = $request->lat;
+        $lng = $request->lng;
+        $radius = $request->radius ?? 10; // Default 10km radius
+        $townId = $request->town_id;
 
-    $providers = ServiceProvider::with('towns')
-        // ->where('district_id', $districtId)
-        ->whereHas('towns', function ($q) use ($townId) {
-            $q->where('town_id', $townId);
-        })
-        ->get()
-        ->filter(function ($provider) use ($keyword) {
-            $industries = $provider->industries ?? [];
-            // $industries should be array (cast in model). If it's string, decode:
-            if (is_string($industries)) {
-                $industries = json_decode($industries, true) ?: [];
-            }
-            foreach ($industries as $ind) {
-                if (stripos($ind, $keyword) === 0) { // starts with keyword
-                    return true;
+        $query = ServiceProvider::with('towns');
+
+        if ($lat && $lng) {
+            // Proximity search using Haversine formula
+            $query->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
+                ->having('distance', '<=', $radius)
+                ->orderBy('distance');
+        } elseif ($townId) {
+            $query->whereHas('towns', function ($q) use ($townId) {
+                $q->where('town_id', $townId);
+            });
+        }
+
+        $providers = $query->get()
+            ->filter(function ($provider) use ($keyword) {
+                $industries = $provider->industries ?? [];
+                if (is_string($industries)) {
+                    $industries = json_decode($industries, true) ?: [];
                 }
-            }
-            return false;
-        })->values();
+                foreach ($industries as $ind) {
+                    if (stripos($ind, $keyword) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            })->values();
 
-    return response()->json($providers);
-}
+        return response()->json($providers);
+    }
 
 public function update(Request $request)
 {
@@ -137,12 +154,15 @@ public function update(Request $request)
             'name'        => 'required|string|max:255',
             'gender'      => 'required|in:M,F',
             'address'     => 'required|string',
-            'district_id' => 'required|integer|exists:districts,id',
-            'towns'       => 'required|array|min:1',
+            'district_id' => 'nullable|integer|exists:districts,id',
+            'towns'       => 'nullable|array',
             'towns.*'     => 'integer|exists:towns,id',
             'industries'  => 'required|array|min:1',
             'industries.*'=> 'string|max:100',
             'photo'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'service_area'=> 'nullable|string',
+            'latitude'    => 'nullable|numeric',
+            'longitude'   => 'nullable|numeric',
         ]);
 
         // Handle photo upload — EXACTLY SAME LOGIC AS REGISTER
@@ -174,7 +194,10 @@ public function update(Request $request)
             'whatsapp_no' => $request->whatsapp_no ?? $provider->whatsapp_no,
             'address'     => $request->address,
             'district_id' => $request->district_id,
-            'industries'  => $request->industries, // auto json_encode because of $casts
+            'industries'  => $request->industries,
+            'service_area'=> $request->service_area ?? $provider->service_area,
+            'latitude'    => $request->latitude ?? $provider->latitude,
+            'longitude'   => $request->longitude ?? $provider->longitude,
         ]);
 
         // Sync towns

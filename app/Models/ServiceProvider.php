@@ -15,7 +15,8 @@ class ServiceProvider extends Authenticatable
 
     protected $fillable = [
         'name', 'gender', 'mobile_no', 'whatsapp_no', 'address',
-        'district_id', 'industries', 'photo_url', 'email'
+        'district_id', 'industries', 'photo_url', 'email',
+        'latitude', 'longitude', 'service_area'
     ];
 
     protected $casts = [
