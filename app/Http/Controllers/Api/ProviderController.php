@@ -39,24 +39,14 @@ class ProviderController extends Controller
             $photoPath = null;
 
             if ($request->hasFile('photo')) {
-
                 $ext = $request->file('photo')->getClientOriginalExtension();
-
-                // select whatsapp_no first, else mobile_no
                 $idPart = $request->whatsapp_no ?? $request->mobile_no;
-
-                // timestamp format e.g., 20250212_154422
                 $timestamp = now()->format('Ymd_His');
-
-                // final filename
                 $uniqueName = "{$idPart}_{$timestamp}.{$ext}";
 
-                // save file
-                $photoPath = $request->file('photo')->storeAs(
-                    'provider_photos',
-                    $uniqueName,
-                    'public'
-                );
+                // Save directly to public folder
+                $request->file('photo')->move(public_path('provider_photos'), $uniqueName);
+                $photoPath = "/provider_photos/$uniqueName";
             }
 
             // Create provider entry
@@ -68,7 +58,7 @@ class ProviderController extends Controller
                 'address' => $request->address,
                 'district_id' => $request->district_id,
                 'industries' => json_encode($request->industries),
-                'photo_url' => $photoPath ? "/storage/$photoPath" : null,
+                'photo_url' => $photoPath,
                 'email' => $request->email,
                 'service_area' => $request->service_area,
                 'latitude' => $request->latitude,
@@ -176,10 +166,18 @@ public function update(Request $request)
 
         // Handle photo upload — EXACTLY SAME LOGIC AS REGISTER
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
+            // Delete old photo if it exists in the public folder
             if ($provider->photo_url) {
-                $oldPath = str_replace('/storage/', '', $provider->photo_url);
-                Storage::disk('public')->delete($oldPath);
+                // Handle both new and old paths
+                $oldPath = public_path(str_replace('/storage/', '', $provider->photo_url));
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+                
+                $directPath = public_path(ltrim($provider->photo_url, '/'));
+                if (file_exists($directPath)) {
+                    @unlink($directPath);
+                }
             }
 
             $ext = $request->file('photo')->getClientOriginalExtension();
@@ -187,13 +185,8 @@ public function update(Request $request)
             $timestamp = now()->format('Ymd_His');
             $uniqueName = "{$idPart}_{$timestamp}.{$ext}";
 
-            $photoPath = $request->file('photo')->storeAs(
-                'provider_photos',
-                $uniqueName,
-                'public'
-            );
-
-            $provider->photo_url = "/storage/{$photoPath}";
+            $request->file('photo')->move(public_path('provider_photos'), $uniqueName);
+            $provider->photo_url = "/provider_photos/$uniqueName";
         }
 
         // Update all fields — EXACTLY LIKE REGISTER
