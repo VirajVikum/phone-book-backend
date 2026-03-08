@@ -12,21 +12,42 @@ class AuthController extends Controller
 {
     public function sendEmailOtp(Request $request)
     {
-        $email = strtolower($request->email);
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return response()->json(['success' => false, 'message' => 'Invalid email'], 400);
-        }
-
-        // Optional: force Gmail only
-        if (!str_ends_with($email, '@gmail.com')) {
-            return response()->json(['success' => false, 'message' => 'Only Gmail allowed'], 400);
-        }
-
-        $otp = rand(100000, 999999);
-        Cache::put('otp_' . $email, $otp, now()->addMinutes(5));
-
         try {
+            $email = strtolower($request->email);
+            $type = $request->type;
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return response()->json(['success' => false, 'message' => 'Invalid email'], 400);
+            }
+
+            // Uniqueness check for registration
+            if ($type === 'register') {
+                if (ServiceProvider::where('email', $email)->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This email is already registered. Please login.'
+                    ], 422);
+                }
+            }
+
+            // Optional: force Gmail only
+            if (!str_ends_with($email, '@gmail.com')) {
+                return response()->json(['success' => false, 'message' => 'Only Gmail allowed'], 400);
+            }
+
+            $otp = rand(100000, 999999);
+            
+            // This might fail if database is down
+            try {
+                Cache::put('otp_' . $email, $otp, now()->addMinutes(5));
+            } catch (\Exception $e) {
+                \Log::error('Cache failed: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Database/Cache error. Please ensure your MySQL server is running.'
+                ], 500);
+            }
+
             Mail::raw("Your Phone Book verification code is: $otp\n\nValid for 5 minutes.", function ($message) use ($email) {
                 $message->to($email)
                         ->subject('Your Verification Code');
@@ -34,8 +55,8 @@ class AuthController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            \Log::error('Mail failed: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to send email'], 500);
+            \Log::error('Mail/General failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to send email: ' . $e->getMessage()], 500);
         }
     }
 
@@ -257,5 +278,31 @@ public function loginWithWhatsApp(Request $request)
     ], 200);
 }
 
+public function loginWithEmail(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+    ]);
 
+    $email = strtolower($request->email);
+
+    $provider = ServiceProvider::where('email', $email)->first();
+
+    if (!$provider) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No account found with this email'
+        ], 404);
+    }
+
+    $token = $provider->createToken('auth_token')->plainTextToken;
+    $provider->load('towns');
+
+    return response()->json([
+        'success'  => true,
+        'message'  => 'Login successful',
+        'token'    => $token,
+        'provider' => $provider
+    ], 200);
+}
 }

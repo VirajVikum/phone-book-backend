@@ -21,11 +21,19 @@ class ProviderController extends Controller
                 'address' => 'required|string',
                 'district_id' => 'nullable|integer',
                 'towns' => 'nullable|array',
-                'email' => 'nullable|email',
+                'email' => 'required|email',
                 'service_area' => 'nullable|string',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric'
             ]);
+
+            // Check if email already exists
+            if (ServiceProvider::where('email', $request->email)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already registered. Please login.'
+                ], 422);
+            }
 
             // Handle photo upload
             $photoPath = null;
@@ -159,6 +167,7 @@ public function update(Request $request)
             'towns.*'     => 'integer|exists:towns,id',
             'industries'  => 'required|array|min:1',
             'industries.*'=> 'string|max:100',
+            'email'       => 'required|email',
             'photo'       => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'service_area'=> 'nullable|string',
             'latitude'    => 'nullable|numeric',
@@ -193,6 +202,7 @@ public function update(Request $request)
             'gender'      => $request->gender,
             'whatsapp_no' => $request->whatsapp_no ?? $provider->whatsapp_no,
             'address'     => $request->address,
+            'email'       => $request->email,
             'district_id' => $request->district_id,
             'industries'  => $request->industries,
             'service_area'=> $request->service_area ?? $provider->service_area,
