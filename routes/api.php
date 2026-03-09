@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\GnDivisionController;
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/districts', [DistrictController::class, 'index']);
 Route::get('/districts/{id}/towns', [DistrictController::class, 'towns']);
@@ -21,5 +23,7 @@ Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']
 
 Route::post('/login-whatsapp', [AuthController::class, 'loginWithWhatsApp']);
 Route::post('/login-email', [AuthController::class, 'loginWithEmail']);
+
+Route::get('/gn-divisions/search', [GnDivisionController::class, 'search']);
 
 Route::delete('/provider/delete', [ProviderController::class, 'deleteAccount']);
