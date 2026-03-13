@@ -24,6 +24,7 @@ Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']
 Route::post('/login-whatsapp', [AuthController::class, 'loginWithWhatsApp']);
 Route::post('/login-email', [AuthController::class, 'loginWithEmail']);
 
+Route::get('/gn-divisions/all', [GnDivisionController::class, 'all']);
 Route::get('/gn-divisions/search', [GnDivisionController::class, 'search']);
 
 Route::delete('/provider/delete', [ProviderController::class, 'deleteAccount']);
