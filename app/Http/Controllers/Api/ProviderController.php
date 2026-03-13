@@ -259,4 +259,27 @@ public function deleteAccount(Request $request)
     ]);
 }
 
+    public function vote(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'value' => 'required|integer|in:1,-1'
+            ]);
+
+            $provider = ServiceProvider::findOrFail($id);
+            $provider->increment('rating', $request->value);
+
+            return response()->json([
+                'success' => true,
+                'rating' => $provider->rating,
+                'message' => 'Vote recorded successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
