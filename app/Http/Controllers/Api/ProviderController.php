@@ -93,6 +93,7 @@ class ProviderController extends Controller
         $request->validate([
             'requirement' => 'required|string',
             'town_id' => 'nullable|integer',
+            'district_id' => 'nullable|integer',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
             'radius' => 'nullable|numeric'
@@ -103,18 +104,37 @@ class ProviderController extends Controller
         $lng = $request->lng;
         $radius = $request->radius ?? 10; // Default 10km radius
         $townId = $request->town_id;
+        $districtId = $request->district_id;
 
         $query = ServiceProvider::with('towns');
 
-        if ($lat && $lng) {
+        // Logic: If area (town or district) is selected, prioritize rating sort.
+        // Otherwise, if coordinates are provided, do distance search.
+        
+        if ($townId || $districtId) {
+            if ($townId) {
+                $query->whereHas('towns', function ($q) use ($townId) {
+                    $q->where('town_id', $townId);
+                });
+            } else {
+                $query->where('district_id', $districtId);
+            }
+
+            // Always sort by rating when an area is specified
+            $query->orderBy('rating', 'desc');
+
+            if ($lat && $lng) {
+                // Return distance info if possible, but don't sort by it
+                $query->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat]);
+            }
+        } elseif ($lat && $lng) {
             // Proximity search using Haversine formula
             $query->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
                 ->having('distance', '<=', $radius)
                 ->orderBy('distance');
-        } elseif ($townId) {
-            $query->whereHas('towns', function ($q) use ($townId) {
-                $q->where('town_id', $townId);
-            });
+        } else {
+            // Default keyword search sort by rating
+            $query->orderBy('rating', 'desc');
         }
 
         $providers = $query->get()
@@ -129,7 +149,9 @@ class ProviderController extends Controller
                     }
                 }
                 return false;
-            })->values();
+            })
+            ->sortByDesc('rating')
+            ->values();
 
         return response()->json($providers);
     }
